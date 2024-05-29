@@ -1,6 +1,6 @@
 --Вывести количество фильмов в каждой категории, отсортировать по убыванию.
 SELECT c.name,COUNT(f_c.film_id) AS amount_of_films_in_each_category
-FROM public.film_category f_c  JOIN public.category c ON f_c.category_id=c.category_id
+FROM public.film_category f_c  LEFT JOIN public.category c ON f_c.category_id=c.category_id
 GROUP BY  c.category_id,c.name
 ORDER BY amount_of_films_in_each_category DESC;
 
@@ -27,6 +27,16 @@ LIMIT 1;
 SELECT f.title
 FROM public.film f LEFT JOIN public.inventory i ON f.film_id=i.film_id
 WHERE i.inventory_id IS NULL
+--2способ ANTI JOINа
+SELECT f.title
+FROM public.film f
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM public.inventory i
+    WHERE f.film_id=i.film_id
+);
+
+
 
 
 --Вывести топ 3 актеров, которые больше всего появлялись в фильмах в категории “Children”. Если у нескольких актеров одинаковое кол-во фильмов, вывести всех.
@@ -53,6 +63,19 @@ ORDER BY  amount_of_inactive_customer DESC
 
 
 --Вывести категорию фильмов, у которой самое большое кол-во часов суммарной аренды в городах (customer.address_id в этом city), и которые начинаются на букву “a”. То же самое сделать для городов в которых есть символ “-”. Написать все в одном запросе.
+(SELECT c.category_id,c.name,SUM(r.return_date-r.rental_date) AS sum_of_rental
+	FROM rental r JOIN inventory i ON r.inventory_id=i.inventory_id 
+JOIN film_category f_c ON i.film_id=f_c.film_id
+JOIN category c ON f_c.category_id=c.category_id
+JOIN customer cus ON r.customer_id=cus.customer_id
+JOIN address a ON cus.address_id=a.address_id
+JOIN city ON a.city_id=city.city_id
+WHERE city.city LIKE 'a%' 
+GROUP BY c.category_id,c.name
+ORDER BY sum_of_rental DESC
+LIMIT 1)
+UNION ALL 
+	(
 SELECT c.category_id,c.name,SUM(r.return_date-r.rental_date) AS sum_of_rental
 	FROM rental r JOIN inventory i ON r.inventory_id=i.inventory_id 
 JOIN film_category f_c ON i.film_id=f_c.film_id
@@ -60,10 +83,13 @@ JOIN category c ON f_c.category_id=c.category_id
 JOIN customer cus ON r.customer_id=cus.customer_id
 JOIN address a ON cus.address_id=a.address_id
 JOIN city ON a.city_id=city.city_id
-WHERE city.city LIKE 'A%' or city.city LIKE 'a%' or city.city LIKE '%-%'
+WHERE  city.city LIKE '%-%'
 GROUP BY c.category_id,c.name
 ORDER BY sum_of_rental DESC
 LIMIT 1
+	)
+
+
 
 
 
